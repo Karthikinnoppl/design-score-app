@@ -1,4 +1,4 @@
-// ✅ App.js (frontend)
+// App.js updated to display audit results and fix unused warnings
 import React, { useState } from "react";
 import banner from "./assets/banner.png";
 
@@ -6,147 +6,103 @@ export default function App() {
   const [url, setUrl] = useState("");
   const [pageType, setPageType] = useState("Homepage");
   const [score, setScore] = useState(null);
-  const [recommendations, setRecommendations] = useState([]);
+  const [pageSpeed, setPageSpeed] = useState(null);
+  const [sections, setSections] = useState({});
   const [checklist, setChecklist] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const analyzeWebsite = async () => {
     setLoading(true);
-    setScore(null);
-    setRecommendations([]);
-    setChecklist([]);
-
     try {
-      const res = await fetch("https://design-analyzer-backend.onrender.com/analyze", {
+      const res = await fetch("http://localhost:3001/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, pageType }),
+        body: JSON.stringify({ url, pageType })
       });
       const data = await res.json();
-      if (data.analysis) {
-        console.log("🧠 GPT response:", data.analysis);
-        const sections = data.analysis.split("##");
-        const scoreMatch = data.analysis.match(/Design Score: (\d+)/);
-        setScore(scoreMatch ? parseInt(scoreMatch[1], 10) : null);
-
-        const recSection = sections.find(s => s.includes("Recommendations"));
-        const recs = recSection ? recSection.split("\n").slice(1).filter(Boolean) : [];
-        setRecommendations(recs);
-
-        const checklistSection = sections.find(s => s.includes("Advanced UX Checklist"));
-        const checks = checklistSection
-          ? checklistSection
-              .split("\n")
-              .filter(line => line.trim().startsWith("|") && line.includes("|"))
-              .filter(line => !/^\|[-\s]+\|[-\s]+\|$/.test(line)) // skip divider row
-          : [];
-
-        const parsedChecklist = checks.map(row => {
-          const parts = row.split("|").map(cell => cell.trim()).filter(Boolean);
-          if (parts.length === 2) {
-            return { category: parts[0], status: parts[1] };
-          }
-          return null;
-        }).filter(Boolean);
-
-        setChecklist(parsedChecklist);
-      }
+      setScore(data.score || null);
+      setPageSpeed(data.pageSpeed || null);
+      setSections(data.analysisSections || {});
+      setChecklist(data.checklist || []);
     } catch (err) {
-      console.error(err);
-      setRecommendations(["Something went wrong. Please try again."]);
+      console.error("Error analyzing:", err);
     } finally {
       setLoading(false);
     }
   };
 
+  const pageOptions = ["Homepage", "PLP", "PDP", "Blog"];
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Banner */}
       <div className="relative w-full h-[30vh] overflow-hidden">
-        <img
-          src={banner}
-          alt="Design Analyzer Banner"
-          className="absolute inset-0 w-full h-full object-cover object-center"
-        />
+        <img src={banner} alt="Design Analyzer Banner" className="absolute inset-0 w-full h-full object-cover object-center" />
         <div className="absolute inset-0 bg-black bg-opacity-60 flex flex-col items-center justify-center text-center px-4">
           <h1 className="text-white text-4xl md:text-5xl font-bold mb-2">Website Design Analyzer</h1>
-          <p className="text-white text-lg md:text-xl">Get instant UX/UI feedback to boost conversions</p>
+          <p className="text-white text-lg md:text-xl">Get instant UX/UI and performance feedback</p>
         </div>
       </div>
 
       {/* Input Section */}
-      <div className="flex justify-center mt-8 px-4">
-        <div className="w-full max-w-2xl flex flex-col sm:flex-row items-center gap-4">
-          <input
-            type="url"
-            placeholder="Enter your website URL"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className="w-full p-4 text-lg rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <select
-            value={pageType}
-            onChange={(e) => setPageType(e.target.value)}
-            className="w-full sm:w-[200px] p-3 text-lg rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="Homepage">Homepage</option>
-            <option value="PLP">Product Listing Page (PLP)</option>
-            <option value="PDP">Product Detail Page (PDP)</option>
-            <option value="Blog">Blog Page</option>
-          </select>
-          <button
-            onClick={analyzeWebsite}
-            disabled={loading || !url}
-            className="px-6 py-3 text-lg bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition disabled:bg-gray-400"
-          >
-            {loading ? "Analyzing..." : "Analyze"}
-          </button>
+      <div className="flex flex-col items-center mt-8 px-4 gap-4">
+        <input
+          type="url"
+          placeholder="Enter your website URL"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          className="w-full max-w-xl p-4 text-lg rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+
+        <div className="flex flex-wrap justify-center gap-2">
+          {pageOptions.map((option) => (
+            <button
+              key={option}
+              onClick={() => setPageType(option)}
+              className={`px-4 py-2 rounded-full text-sm font-semibold border transition ${
+                pageType === option
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-100"
+              }`}
+            >
+              {option}
+            </button>
+          ))}
         </div>
-      </div>
 
-      {/* Results */}
-      {score !== null && (
-        <div className="flex justify-center mt-10 px-4">
-          <div className="bg-white shadow-lg rounded-2xl p-8 max-w-3xl w-full text-left">
-            <h2 className="text-3xl font-bold mb-6 text-gray-800">
-              Design Score: <span className="text-blue-600">{score}/100</span>
-            </h2>
+        <button
+          onClick={analyzeWebsite}
+          disabled={loading || !url}
+          className="mt-4 px-6 py-3 text-lg bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition disabled:bg-gray-400"
+        >
+          {loading ? "Analyzing..." : "Analyze"}
+        </button>
 
-            {recommendations.length > 0 && (
-              <>
-                <h3 className="text-2xl font-semibold mb-2">Recommendations</h3>
-                <ul className="list-disc list-inside text-gray-700 text-lg space-y-2 mb-6">
-                  {recommendations.map((rec, index) => (
-                    <li key={index}>{rec}</li>
-                  ))}
-                </ul>
-              </>
-            )}
+        {/* Results */}
+        {sections && Object.keys(sections).length > 0 && (
+          <div className="mt-10 max-w-4xl w-full bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-2xl font-bold mb-4">Audit Results</h2>
+            <p className="text-gray-600 mb-2">Score: {score}</p>
+            <p className="text-gray-600 mb-4">PageSpeed: {pageSpeed}</p>
 
-            {checklist.length > 0 && (
-              <>
-                <h3 className="text-2xl font-semibold mb-2">Advanced UX Checklist</h3>
-                <table className="table-auto w-full text-left text-gray-700">
-                  <thead>
-                    <tr>
-                      <th className="border-b py-2 pr-4">Category</th>
-                      <th className="border-b py-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {checklist.map((item, index) => (
-                      <tr key={index}>
-                        <td className="py-2 pr-4 border-b">{item.category}</td>
-                        <td className="py-2 border-b">{item.status}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </>
-            )}
+            {Object.entries(sections).map(([section, content]) => (
+              <div key={section} className="mb-6">
+                <h3 className="text-lg font-semibold text-blue-700 mb-2">{section}</h3>
+                <pre className="whitespace-pre-wrap bg-gray-50 p-4 rounded text-sm text-gray-800 border border-gray-200">
+                  {content}
+                </pre>
+              </div>
+            ))}
+
+            <h3 className="text-lg font-semibold text-green-700 mt-6 mb-2">Checklist</h3>
+            <ul className="list-disc ml-6 space-y-1 text-sm text-gray-800">
+              {checklist.map((item, index) => (
+                <li key={index}><strong>{item.category}</strong>: {item.status}</li>
+              ))}
+            </ul>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
