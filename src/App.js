@@ -14,7 +14,7 @@ export default function App() {
   const analyzeWebsite = async () => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:3001/analyze", {
+      const res = await fetch("https://design-analyzer-backend.onrender.com/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, pageType })
