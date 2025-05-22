@@ -1,4 +1,4 @@
-// App.js updated to display audit results and fix unused warnings
+// App.js with updated verbiage, styling for Design Score and Page Speed Score
 import React, { useState } from "react";
 import banner from "./assets/banner.png";
 
@@ -78,12 +78,19 @@ export default function App() {
           {loading ? "Analyzing..." : "Analyze"}
         </button>
 
+        {loading && (
+          <p className="mt-4 text-sm text-gray-600">This may take up to 30 seconds depending on the website. Please wait...</p>
+        )}
+
         {/* Results */}
         {sections && Object.keys(sections).length > 0 && (
           <div className="mt-10 max-w-4xl w-full bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-2xl font-bold mb-4">Audit Results</h2>
-            <p className="text-gray-600 mb-2">Score: {score}</p>
-            <p className="text-gray-600 mb-4">PageSpeed: {pageSpeed}</p>
+            <h2 className="text-2xl font-bold mb-6 text-center">Audit Results</h2>
+
+            <div className="text-center mb-6">
+              <p className="text-xl font-bold text-blue-700">Design Score: <span className="text-black">{score}</span></p>
+              <p className="text-xl font-bold text-green-700">Page Speed Score: <span className="text-black">{pageSpeed}</span></p>
+            </div>
 
             {Object.entries(sections).map(([section, content]) => (
               <div key={section} className="mb-6">
